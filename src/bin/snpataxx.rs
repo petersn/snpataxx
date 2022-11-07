@@ -1,9 +1,10 @@
 use std::{collections::HashMap, io::BufRead};
+use snpataxx::search::Engine;
 
 fn main() {
   let stdin = std::io::stdin();
   let mut options = HashMap::new();
-  let mut engine = snpataxx::search::Engine::new(rand::random());
+  let mut engine = Engine::new(rand::random());
 
   for line in stdin.lock().lines().map(|r| r.unwrap()) {
     let tokens = line.split_whitespace().collect::<Vec<_>>();
@@ -17,6 +18,7 @@ fn main() {
         println!("uaiok");
       }
       "uaiok" => {}
+      "uainewgame" => engine = Engine::new(rand::random()),
       "isready" => println!("readyok"),
       "quit" => break,
       "setoption" => {
@@ -31,7 +33,7 @@ fn main() {
       }
       "position" => match tokens[1] {
         "startpos" => {
-          engine = snpataxx::search::Engine::new(rand::random());
+          engine = Engine::new(rand::random());
           if tokens.len() > 2 {
             assert_eq!(tokens[2], "moves");
             let moves = &tokens[3..];
@@ -59,15 +61,24 @@ fn main() {
           }
         }
         let (score, m) = engine.run(depth);
+        if m == Some(snpataxx::rules::Move::PASS) {
+          // Make sure we have no moves!
+          let mut moves = vec![];
+          engine.state.move_gen(&mut moves);
+          if moves.len() > 0 {
+            panic!("PASS move when we have other moves: {:?}\n{}", moves, engine.state.render());
+          }
+        }
         match m {
           Some(m) => {
             println!("bestmove {}", m.to_uai());
             println!("info score cp {} pv {}", score, m.to_uai());
             engine.make_move(m).unwrap();
           }
-          None => println!("bestmove 0000"),
+          None => println!("bestmove xyzw"),
         }
       }
+      "stop" => {}
       _ => panic!("Unknown command: {}", line),
     }
   }

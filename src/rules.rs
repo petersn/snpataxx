@@ -27,7 +27,7 @@ pub struct State {
   pub to_move:      Color,
 }
 
-#[derive(Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Spot(u8);
 
 impl Spot {
@@ -47,8 +47,9 @@ impl Spot {
   }
 
   pub fn to_uai(self) -> String {
-    let letter = (b'a' + (self.0 % 8)) as char;
-    let number = (b'1' + (self.0 / 8)) as char;
+    let (x, y) = (self.0 % 8, self.0 / 8);
+    let letter = (b'a' + x) as char;
+    let number = (b'1' + (6 - y)) as char;
     format!("{}{}", letter, number)
   }
 }
@@ -62,16 +63,16 @@ fn iter_bits(bitboard: &mut u64) -> Option<Spot> {
   Some(Spot(pos as u8))
 }
 
-#[derive(Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Move {
   pub from: Spot,
   pub to:   Spot,
 }
 
 impl Move {
-  const PASS: Self = Move {
-    from: Spot(0),
-    to:   Spot(0),
+  pub const PASS: Self = Move {
+    from: Spot(255),
+    to:   Spot(255),
   };
 
   pub fn from_uai(uai: &str) -> Move {
@@ -128,26 +129,42 @@ impl State {
     }
   }
 
-  pub fn render(&self) {
+  pub fn render(&self) -> String {
+    let mut s = String::new();
     for y in 0..7 {
       for x in 0..7 {
         let pos = y * 8 + x;
         let mask = 1 << pos;
         if self.black_stones & mask != 0 {
-          print!("\x1b[91mX\x1b[0m");
+          //print!("\x1b[91mX\x1b[0m");
+          s.push_str("\x1b[91mX\x1b[0m");
         } else if self.white_stones & mask != 0 {
-          print!("\x1b[94mO\x1b[0m");
+          //print!("\x1b[94mO\x1b[0m");
+          s.push_str("\x1b[94mO\x1b[0m");
         } else if self.gaps & mask != 0 {
-          print!("#");
+          //print!("#");
+          s.push('#');
         } else {
-          print!(".");
+          //print!(".");
+          s.push('.');
         }
         if x != 6 {
-          print!(" ");
+          //print!(" ");
+          s.push(' ');
         }
       }
-      println!("");
+      //println!("");
+      s.push_str("\n");
     }
+    match self.to_move {
+      Color::Black => {
+        s.push_str("\x1b[91mX\x1b[0m -- Black to move\n");
+      }
+      Color::White => {
+        s.push_str("\x1b[94mO\x1b[0m -- White to move\n");
+      }
+    }
+    s
   }
 
   pub fn get_hash(&self) -> u64 {

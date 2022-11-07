@@ -32,6 +32,9 @@ impl<const SIZE: usize, T> FixedHashTable<SIZE, T> {
 
 type Evaluation = i32;
 
+const VERY_NEGATIVE_EVAL: Evaluation = -1_000_000_000;
+const VERY_POSITIVE_EVAL: Evaluation = 1_000_000_000;
+
 fn make_terminal_score_slightly_less_extreme(score: Evaluation) -> Evaluation {
   if score > 100_000 {
     score - 1
@@ -47,7 +50,11 @@ pub fn evaluate(state: &State) -> Evaluation {
   let mut score =
     100 * (state.black_stones.count_ones() as i32 - state.white_stones.count_ones() as i32);
   if state.game_is_over() {
-    score *= 1_000_000;
+    if score > 0 {
+      score += 1_000_000;
+    } else if score < 0 {
+      score -= 1_000_000;
+    }
   }
   match state.to_move {
     Color::Black => score,
@@ -85,7 +92,7 @@ impl Engine {
     let state = self.state.clone();
     // Iterative deepening.
     for d in 1..=max_depth {
-      p = self.pvs(d, &state, Evaluation::MIN, Evaluation::MAX);
+      p = self.pvs(d, &state, VERY_NEGATIVE_EVAL, VERY_POSITIVE_EVAL);
     }
     p
   }
@@ -119,7 +126,7 @@ impl Engine {
     });
 
     let mut first = true;
-    let mut best_score = Evaluation::MIN;
+    let mut best_score = VERY_NEGATIVE_EVAL;
     let mut best_move = None;
     for m in moves {
       let mut new_state = state.clone();
