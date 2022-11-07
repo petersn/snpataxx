@@ -21,16 +21,13 @@ fn main() {
       }
     }
   }
-  let formatted_moore = moore
-    .iter()
-    .map(|&move_mask| format!("0x{:016x}", move_mask))
-    .collect::<Vec<_>>()
-    .join(", ");
-  let formatted_double_moves = double_moves
-    .iter()
-    .map(|&move_mask| format!("0x{:016x}", move_mask))
-    .collect::<Vec<_>>()
-    .join(", ");
+
+  let format = |numbers: &[u64]| {
+    numbers.iter().map(|x| format!("0x{:016x}", x)).collect::<Vec<_>>().join(", ")
+  };
+
+  let formatted_moore = format(&moore);
+  let formatted_double_moves = format(&double_moves);
 
   let code = format!(
     r#"

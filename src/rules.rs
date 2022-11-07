@@ -1,6 +1,10 @@
+use crate::rng::RNG_MULT;
+
 include!(concat!(env!("OUT_DIR"), "/tables.rs"));
 
-#[derive(Clone, Copy)]
+const ALL_CELLS_MASK: u64 = 0x7f7f7f7f7f7f7f;
+
+#[derive(Clone, Copy, PartialEq, Eq)]
 pub enum Color {
   Black,
   White,
@@ -19,12 +23,35 @@ impl Color {
 pub struct State {
   pub black_stones: u64,
   pub white_stones: u64,
-  pub gaps: u64,
-  pub to_move: Color,
+  pub gaps:         u64,
+  pub to_move:      Color,
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, PartialEq, Eq)]
 pub struct Spot(u8);
+
+impl Spot {
+  pub fn from_uai(s: &str) -> Spot {
+    let mut chars = s.chars();
+    let letter = chars.next().unwrap();
+    let number = chars.next().unwrap();
+    if chars.next().is_some() {
+      panic!("Invalid spot: {}", s);
+    }
+    let letter = letter as u8 - b'a';
+    let number = number as u8 - b'1';
+    if letter > 6 || number > 6 {
+      panic!("Invalid spot: {}", s);
+    }
+    Spot(letter + 8 * number)
+  }
+
+  pub fn to_uai(self) -> String {
+    let letter = (b'a' + (self.0 % 8)) as char;
+    let number = (b'1' + (self.0 / 8)) as char;
+    format!("{}{}", letter, number)
+  }
+}
 
 fn iter_bits(bitboard: &mut u64) -> Option<Spot> {
   let pos = bitboard.trailing_zeros();
@@ -35,10 +62,41 @@ fn iter_bits(bitboard: &mut u64) -> Option<Spot> {
   Some(Spot(pos as u8))
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, PartialEq, Eq)]
 pub struct Move {
   pub from: Spot,
-  pub to: Spot,
+  pub to:   Spot,
+}
+
+impl Move {
+  const PASS: Self = Move {
+    from: Spot(0),
+    to:   Spot(0),
+  };
+
+  pub fn from_uai(uai: &str) -> Move {
+    if uai == "0000" {
+      return Move::PASS;
+    }
+    match uai.len() {
+      4 => Move { from: Spot::from_uai(&uai[..2]), to: Spot::from_uai(&uai[2..]) },
+      2 => {
+        let spot = Spot::from_uai(uai);
+        Move { from: spot, to: spot }
+      }
+      _ => panic!("Invalid move: {}", uai),
+    }
+  }
+
+  pub fn to_uai(self) -> String {
+    if self == Move::PASS {
+      return "0000".to_string();
+    }
+    match self.from == self.to {
+      true => self.from.to_uai(),
+      false => format!("{}{}", self.from.to_uai(), self.to.to_uai()),
+    }
+  }
 }
 
 impl State {
@@ -46,8 +104,27 @@ impl State {
     State {
       black_stones: 0,
       white_stones: 0,
-      gaps: 0,
-      to_move: Color::Black,
+      gaps:         0,
+      to_move:      Color::Black,
+    }
+  }
+
+  pub fn game_is_over(&self) -> bool {
+    (self.black_stones | self.white_stones | self.gaps) == ALL_CELLS_MASK
+  }
+
+  pub fn get_winner(&self) -> Option<Color> {
+    match self.game_is_over() {
+      false => None,
+      true => {
+        let black_score = self.black_stones.count_ones();
+        let white_score = self.white_stones.count_ones();
+        match black_score.cmp(&white_score) {
+          std::cmp::Ordering::Less => Some(Color::White),
+          std::cmp::Ordering::Equal => panic!("Odd number of gaps lead to draw"),
+          std::cmp::Ordering::Greater => Some(Color::Black),
+        }
+      }
     }
   }
 
@@ -71,6 +148,22 @@ impl State {
       }
       println!("");
     }
+  }
+
+  pub fn get_hash(&self) -> u64 {
+    let mut hash = 0;
+    macro_rules! hash_in(
+      ($x:expr) => {
+        hash ^= $x;
+        hash = hash.wrapping_mul(RNG_MULT);
+        hash ^= hash >> 37;
+      }
+    );
+    // We don't need to include the gaps, because they're fixed.
+    hash_in!(self.black_stones);
+    hash_in!(self.white_stones);
+    hash_in!(self.to_move as u64);
+    hash
   }
 
   pub fn from_fen(fen: &str) -> Result<State, String> {
