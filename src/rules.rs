@@ -1,15 +1,13 @@
-use rand::seq::SliceRandom;
-
 include!(concat!(env!("OUT_DIR"), "/tables.rs"));
 
 #[derive(Clone, Copy)]
-enum Color {
+pub enum Color {
   Black,
   White,
 }
 
 impl Color {
-  fn other_player(self) -> Color {
+  pub fn other_player(self) -> Color {
     match self {
       Color::Black => Color::White,
       Color::White => Color::Black,
@@ -18,15 +16,15 @@ impl Color {
 }
 
 #[derive(Clone)]
-struct State {
-  black_stones: u64,
-  white_stones: u64,
-  gaps: u64,
-  to_move: Color,
+pub struct State {
+  pub black_stones: u64,
+  pub white_stones: u64,
+  pub gaps: u64,
+  pub to_move: Color,
 }
 
 #[derive(Clone, Copy)]
-struct Spot(u8);
+pub struct Spot(u8);
 
 fn iter_bits(bitboard: &mut u64) -> Option<Spot> {
   let pos = bitboard.trailing_zeros();
@@ -38,13 +36,13 @@ fn iter_bits(bitboard: &mut u64) -> Option<Spot> {
 }
 
 #[derive(Clone, Copy)]
-struct Move {
-  from: Spot,
-  to: Spot,
+pub struct Move {
+  pub from: Spot,
+  pub to: Spot,
 }
 
 impl State {
-  fn new() -> State {
+  pub fn new() -> State {
     State {
       black_stones: 0,
       white_stones: 0,
@@ -53,7 +51,7 @@ impl State {
     }
   }
 
-  fn render(&self) {
+  pub fn render(&self) {
     for y in 0..7 {
       for x in 0..7 {
         let pos = y * 8 + x;
@@ -75,7 +73,7 @@ impl State {
     }
   }
 
-  fn from_fen(fen: &str) -> Result<State, String> {
+  pub fn from_fen(fen: &str) -> Result<State, String> {
     let mut state = State::new();
     let mut chars = fen.chars();
     let mut i = 0;
@@ -108,7 +106,7 @@ impl State {
     Ok(state)
   }
 
-  fn move_gen(&self, moves: &mut Vec<Move>) {
+  pub fn move_gen(&self, moves: &mut Vec<Move>) {
     let unoccupied = !(self.black_stones | self.white_stones | self.gaps);
     let mut our_stones = match self.to_move {
       Color::Black => self.black_stones,
@@ -127,7 +125,7 @@ impl State {
     }
   }
 
-  fn sanity_check(&self) {
+  pub fn sanity_check(&self) {
     if self.black_stones & self.white_stones != 0 {
       panic!("Black and white stones overlap");
     }
@@ -139,7 +137,7 @@ impl State {
     }
   }
 
-  fn make_move(&mut self, m: Move) -> Result<(), &'static str> {
+  pub fn make_move(&mut self, m: Move) -> Result<(), &'static str> {
     // Place the target stone.
     match self.to_move {
       Color::Black => self.black_stones |= 1 << m.to.0,
@@ -162,28 +160,5 @@ impl State {
     }
     self.to_move = self.to_move.other_player();
     Ok(())
-  }
-}
-
-fn perft(depth: usize, state: State) -> usize {
-  if depth == 0 {
-    return 1;
-  }
-  let mut moves = Vec::new();
-  state.move_gen(&mut moves);
-  let mut total = 0;
-  for m in moves {
-    let mut new_state = state.clone();
-    new_state.make_move(m).unwrap();
-    new_state.sanity_check();
-    total += perft(depth - 1, new_state);
-  }
-  total
-}
-
-fn main() {
-  let mut state = State::from_fen("x5o/7/7/7/7/7/o5x x 0 1").unwrap();
-  for i in 0..6 {
-    println!("{} {}", i, perft(i, state.clone()));
   }
 }
