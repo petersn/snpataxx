@@ -245,6 +245,10 @@ impl State {
   }
 
   pub fn make_move(&mut self, m: Move) -> Result<(), &'static str> {
+    if m == Move::PASS {
+      self.to_move = self.to_move.other_player();
+      return Ok(());
+    }
     // Place the target stone.
     match self.to_move {
       Color::Black => self.black_stones |= 1 << m.to.0,
