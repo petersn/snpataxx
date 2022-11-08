@@ -1,5 +1,9 @@
 use std::{collections::HashMap, io::BufRead};
-use snpataxx::{search::Engine, rules::{Color, State}};
+
+use snpataxx::{
+  rules::{Color, State},
+  search::Engine,
+};
 
 fn main() {
   let stdin = std::io::stdin();
@@ -50,7 +54,7 @@ fn main() {
           engine.set_position(state);
         }
         _ => panic!("Unknown position command: {}", line),
-      }
+      },
       "go" => {
         let mut depth = None;
         let mut btime = 10;
@@ -91,7 +95,11 @@ fn main() {
           let mut moves = vec![];
           engine.state.move_gen(&mut moves);
           if moves.len() > 0 {
-            panic!("PASS move when we have other moves: {:?}\n{}", moves, engine.state.render());
+            panic!(
+              "PASS move when we have other moves: {:?}\n{}",
+              moves,
+              engine.state.render()
+            );
           }
         }
         match m {

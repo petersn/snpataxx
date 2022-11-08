@@ -80,10 +80,16 @@ impl Move {
       return Move::PASS;
     }
     match uai.len() {
-      4 => Move { from: Spot::from_uai(&uai[..2]), to: Spot::from_uai(&uai[2..]) },
+      4 => Move {
+        from: Spot::from_uai(&uai[..2]),
+        to:   Spot::from_uai(&uai[2..]),
+      },
       2 => {
         let spot = Spot::from_uai(uai);
-        Move { from: spot, to: spot }
+        Move {
+          from: spot,
+          to:   spot,
+        }
       }
       _ => panic!("Invalid move: {}", uai),
     }

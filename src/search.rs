@@ -1,5 +1,5 @@
-use std::sync::Arc;
 use std::sync::atomic::AtomicBool;
+use std::sync::Arc;
 
 use crate::rng::Rng;
 use crate::rules::{Color, Move, State};
@@ -14,9 +14,7 @@ impl<const SIZE: usize, T> FixedHashTable<SIZE, T> {
     for _ in 0..SIZE {
       table.push((0, unsafe { std::mem::zeroed() }));
     }
-    FixedHashTable {
-      table,
-    }
+    FixedHashTable { table }
   }
 
   fn get(&self, key: u64) -> Option<&T> {
@@ -124,14 +122,22 @@ impl Engine {
         break;
       }
     }
-    println!("info time {} nodes {}", start.elapsed().as_millis(), self.nodes);
+    println!(
+      "info time {} nodes {}",
+      start.elapsed().as_millis(),
+      self.nodes
+    );
     p
   }
 
-  pub fn run_time_managed(&mut self, ms_on_clock: i32, ms_increment: i32) -> (Evaluation, Option<Move>) {
+  pub fn run_time_managed(
+    &mut self,
+    ms_on_clock: i32,
+    ms_increment: i32,
+  ) -> (Evaluation, Option<Move>) {
     // Estimate the number of moves left in the game.
     let filled = (self.state.black_stones | self.state.white_stones | self.state.gaps).count_ones();
-    let moves_left = 1 + (7*7 - filled) * 2;
+    let moves_left = 1 + (7 * 7 - filled) * 2;
     assert!(moves_left > 0);
     // Estimate the time we have left.
     let time_left = ms_on_clock + ms_increment * moves_left as i32;
@@ -139,7 +145,10 @@ impl Engine {
     let time_per_move = (time_left as f32 / moves_left as f32) as i32;
     // Make sure we don't spend more than half of our time on this move.
     let time_to_spend = time_per_move.min(ms_on_clock / 2);
-    println!("moves_left: {moves_left} time_left: {}, time_per_move: {}, time_to_spend: {}", time_left, time_per_move, time_to_spend);
+    println!(
+      "moves_left: {moves_left} time_left: {}, time_per_move: {}, time_to_spend: {}",
+      time_left, time_per_move, time_to_spend
+    );
     // Run the search.
     self.run_time(time_to_spend)
   }

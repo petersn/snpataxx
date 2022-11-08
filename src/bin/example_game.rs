@@ -1,4 +1,4 @@
-use snpataxx::rules::{State, Move};
+use snpataxx::rules::{Move, State};
 use snpataxx::search::Engine;
 
 fn main() {
