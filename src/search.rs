@@ -160,7 +160,6 @@ impl Engine {
     mut alpha: Evaluation,
     beta: Evaluation,
   ) -> (Evaluation, Option<Move>) {
-    self.nodes += 1;
     let random_bonus = || self.rng.generate_range(15) as i32;
     if state.game_is_over() || depth == 0 {
       return (evaluate(state) + random_bonus(), None);
@@ -188,6 +187,7 @@ impl Engine {
     for m in moves {
       let mut new_state = state.clone();
       new_state.make_move(m).unwrap();
+      self.nodes += 1;
       // Recurse on subtrees.
       let mut score;
       if first {
