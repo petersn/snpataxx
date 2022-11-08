@@ -1,10 +1,11 @@
 use std::{collections::HashMap, io::BufRead};
-use snpataxx::search::Engine;
+use snpataxx::{search::Engine, rules::{Color, State}};
 
 fn main() {
   let stdin = std::io::stdin();
   let mut options = HashMap::new();
   let mut engine = Engine::new(rand::random());
+  engine.set_position(State::from_fen("x5o/7/7/7/7/7/o5x x 0 1").unwrap());
 
   for line in stdin.lock().lines().map(|r| r.unwrap()) {
     let tokens = line.split_whitespace().collect::<Vec<_>>();
@@ -51,16 +52,40 @@ fn main() {
         _ => panic!("Unknown position command: {}", line),
       }
       "go" => {
-        let mut depth = 3;
-        let mut infinite = false;
+        let mut depth = None;
+        let mut btime = 10;
+        let mut wtime = 10;
+        let mut binc = 1000;
+        let mut winc = 1000;
+        let mut movetime = None;
         for i in 1..tokens.len() {
           match tokens[i] {
-            "depth" => depth = tokens[i + 1].parse().unwrap(),
-            "infinite" => infinite = true,
+            "depth" => depth = Some(tokens[i + 1].parse().unwrap()),
+            "btime" => btime = tokens[i + 1].parse().unwrap(),
+            "wtime" => wtime = tokens[i + 1].parse().unwrap(),
+            "binc" => binc = tokens[i + 1].parse().unwrap(),
+            "winc" => winc = tokens[i + 1].parse().unwrap(),
+            "movetime" => movetime = Some(tokens[i + 1].parse().unwrap()),
             _ => (),
           }
         }
-        let (score, m) = engine.run(depth);
+
+        let (score, m) = match (depth, movetime) {
+          (Some(_), Some(_)) => panic!("Cannot specify both depth and movetime"),
+          // If we have a specified depth, use that.
+          (Some(depth), _) => engine.run_depth(depth),
+          // If we have a specified time, use that.
+          (_, Some(movetime)) => engine.run_time(movetime),
+          // Otherwise, use time controls.
+          (None, None) => {
+            let (time, inc) = match engine.state.to_move {
+              Color::White => (wtime, winc),
+              Color::Black => (btime, binc),
+            };
+            engine.run_time_managed(time, inc)
+          }
+        };
+
         if m == Some(snpataxx::rules::Move::PASS) {
           // Make sure we have no moves!
           let mut moves = vec![];
