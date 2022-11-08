@@ -136,24 +136,18 @@ impl State {
         let pos = y * 8 + x;
         let mask = 1 << pos;
         if self.black_stones & mask != 0 {
-          //print!("\x1b[91mX\x1b[0m");
           s.push_str("\x1b[91mX\x1b[0m");
         } else if self.white_stones & mask != 0 {
-          //print!("\x1b[94mO\x1b[0m");
           s.push_str("\x1b[94mO\x1b[0m");
         } else if self.gaps & mask != 0 {
-          //print!("#");
           s.push('#');
         } else {
-          //print!(".");
           s.push('.');
         }
         if x != 6 {
-          //print!(" ");
           s.push(' ');
         }
       }
-      //println!("");
       s.push_str("\n");
     }
     match self.to_move {
@@ -232,6 +226,9 @@ impl State {
     }
     while let Some(to) = iter_bits(&mut single_moves) {
       moves.push(Move { from: to, to });
+    }
+    if moves.is_empty() {
+      moves.push(Move::PASS);
     }
   }
 
