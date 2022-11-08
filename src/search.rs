@@ -105,7 +105,7 @@ impl Engine {
 
   pub fn run_time(&mut self, movetime_ms: i32) -> (Evaluation, Option<Move>) {
     self.nodes = 0;
-    let mut p = (0, None);
+    let mut p;
     let state = self.state.clone();
     self.do_stop.store(false, std::sync::atomic::Ordering::Relaxed);
     // Use a thread to stop the search after the given time.
@@ -116,16 +116,19 @@ impl Engine {
     });
     let start = std::time::Instant::now();
     // Iterative deepening.
-    for d in 1.. {
-      p = self.pvs(d, &state, VERY_NEGATIVE_EVAL, VERY_POSITIVE_EVAL);
+    let mut depth = 0;
+    loop {
+      depth += 1;
+      p = self.pvs(depth, &state, VERY_NEGATIVE_EVAL, VERY_POSITIVE_EVAL);
       if self.do_stop.load(std::sync::atomic::Ordering::Relaxed) {
         break;
       }
     }
     println!(
-      "info time {} nodes {}",
+      "info time {} nodes {} depth {}",
       start.elapsed().as_millis(),
-      self.nodes
+      self.nodes,
+      depth,
     );
     p
   }
