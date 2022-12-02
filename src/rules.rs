@@ -174,6 +174,8 @@ impl State {
         hash ^= $x;
         hash = hash.wrapping_mul(RNG_MULT);
         hash ^= hash >> 37;
+        hash = hash.wrapping_mul(RNG_MULT);
+        hash ^= hash >> 37;
       }
     );
     // We don't need to include the gaps, because they're fixed.
